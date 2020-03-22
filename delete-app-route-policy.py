@@ -71,12 +71,13 @@ class Authentication:
         else:
             return None
 
+
 if __name__ == '__main__':
 
     try:
 
         log_level = logging.DEBUG
-        logger = get_logger("log/app_route_policy_changes.txt", log_level)
+        logger = get_logger("log/delete_app_route_policy.txt", log_level)
         vmanage_host = os.environ.get("vmanage_host")
         vmanage_port = os.environ.get("vmanage_port")
         username = os.environ.get("username")
@@ -110,36 +111,6 @@ if __name__ == '__main__':
 
         base_url = "https://%s:%s/dataservice"%(vmanage_host,vmanage_port)
 
-        # Get app route statistics
-
-        # Create new SLA class 
-
-        payload = {
-                    "name": "msuchand_sla_class",
-                    "description": "Desc Not Required",
-                    "type": "sla",
-                    "entries": [
-                        {
-                        "latency": "100",
-                        "loss": "10",
-                        "jitter": "10"
-                        }
-                    ]
-                  }
-
-
-        api_url = "/template/policy/list/sla"
-
-        url = base_url + api_url
-
-        response = requests.post(url=url, headers=headers, data=json.dumps(payload), verify=False)
-
-        if response.status_code == 200:
-            sla_class_id = response.json()["listId"]
-        else:
-            if logger is not None:
-                logger.error("Failed to create new SLA class\n")
-
 
         # Get app aware route policies 
 
@@ -154,60 +125,12 @@ if __name__ == '__main__':
             for item in app_aware_policy:
                 if item["name"] == app_route_policy_name:
                     app_aware_policy_id = item["definitionId"]
-                    break
+                elif item["name"] == "msuchand_" + app_route_policy_name:
+                    new_app_aware_policy_id = item["definitionId"]            
         else:
             if logger is not None:
                 logger.error("Failed to get app route policies list\n")
             exit()  
-
-        # Get app aware route policy sequences defination 
-
-        api_url = "/template/policy/definition/approute/%s"%app_aware_policy_id
-
-        url = base_url + api_url
-        
-        response = requests.get(url=url, headers=headers, verify=False)
-
-        if response.status_code == 200:
-            temp = response.json()
-            for item1 in temp["sequences"]:
-                for item2 in item1["actions"]:
-                    if item2['type'] == 'slaClass':
-                        for item3 in item2['parameter']:
-                            if item3["field"] == 'name':
-                                item3["ref"] = sla_class_id
-
-            app_policy_def = temp
-
-        else:
-            if logger is not None:
-                logger.error("Failed to get app route policy sequences\n")
-            exit()  
-
-
-        # Create new App aware route policy
-
-        payload = {
-                    "name": "msuchand_" + app_policy_def["name"] ,
-                    "type": app_policy_def["type"],
-                    "description": "msuchand_" + app_policy_def["description"] ,
-                    "sequences": app_policy_def["sequences"]
-                    }
-
-        if logger is not None:
-            logger.info("App aware route policy post request payload :" + str(payload))
-
-        api_url = '/template/policy/definition/approute' 
-
-        url = base_url + api_url
-
-        response = requests.post(url=url, headers=headers, data=json.dumps(payload), verify=False)
-
-        if response.status_code == 200:
-            app_aware_route_id = response.json()["definitionId"]
-        else:
-            if logger is not None:
-                logger.error("Failed to create new App aware route policy\n" + str(response.text))
 
         # Get current vSmart policies 
 
@@ -231,7 +154,7 @@ if __name__ == '__main__':
 
             for item in active_vsmart_policy_def["assembly"]:
                 if item["type"] == "appRoute":
-                    item["definitionId"] = app_aware_route_id
+                    item["definitionId"] = app_aware_policy_id
 
         else:
             if logger is not None:
@@ -295,7 +218,7 @@ if __name__ == '__main__':
             if response.status_code == 200:
                 if response.json()['summary']['status'] == "done":
                     logger.info("\nvsmart policy push status is done")
-                    print("Updated vsmart policy with new app aware route policy")
+                    print("Updated vsmart policy with old app aware route policy")
                     break
                 else:
                     continue
@@ -319,6 +242,58 @@ if __name__ == '__main__':
             if logger is not None:
                 logger.error("\nFailed to get vsmart policy preview " + str(response.text))
             exit()
+
+        # Delete app route policy
+
+        api_url = "/template/policy/definition/approute/%s"%new_app_aware_policy_id
+
+        url = base_url + api_url
+
+        response = requests.delete(url=url,headers=headers, verify=False)
+
+        if response.status_code == 200:
+            if logger is not None:
+                logger.error("\nDeleted msuchand_ app route policy")
+            print("\nDeleted msuchand_ app route policy")
+        else:
+            if logger is not None:
+                logger.error("\nFailed to delete msuchand_ app route policy " + str(response.text))
+            exit()
+
+
+        # Delete SLA class
+
+        api_url = "/template/policy/list/sla"
+
+        url = base_url + api_url
+
+        response = requests.get(url=url,headers=headers, verify=False)
+
+        if response.status_code == 200:
+            temp = response.json()["data"]
+            for item in temp:
+                if item['name'] == "msuchand_sla_class":
+                    sla_class_id = item["listId"]
+        else:
+            if logger is not None:
+                logger.error("\nFailed to get sla class list" + str(response.text))
+            exit()
+
+        api_url = "/template/policy/list/sla/%s"%sla_class_id
+
+        url = base_url + api_url
+
+        response = requests.delete(url=url,headers=headers, verify=False)
+
+        if response.status_code == 200:
+            if logger is not None:
+                logger.error("\nDeleted msuchand_sla_class")
+            print("\nDeleted msuchand_sla_class")
+        else:
+            if logger is not None:
+                logger.error("\nFailed to delete msuchand_sla_class" + str(response.text))
+            exit()
+
 
     except Exception as e:
         print('Failed due to error',str(e))

@@ -4,6 +4,7 @@ import json
 import os
 import time
 import logging
+import yaml
 from logging.handlers import TimedRotatingFileHandler
 
 requests.packages.urllib3.disable_warnings()
@@ -77,27 +78,21 @@ if __name__ == '__main__':
 
         log_level = logging.DEBUG
         logger = get_logger("log/app_route_policy_changes.txt", log_level)
-        vmanage_host = os.environ.get("vmanage_host")
-        vmanage_port = os.environ.get("vmanage_port")
-        username = os.environ.get("username")
-        password = os.environ.get("password")
-        app_route_policy_name = os.environ.get("app_route_policy_name")
+        
+        if logger is not None:
+            logger.info("Loading vManage login details from YAML\n")
+        with open("vmanage_login.yaml") as f:
+            config = yaml.safe_load(f.read())
 
-        if vmanage_host is None or vmanage_port is None or username is None or password is None or app_route_policy_name is None:
-            print("For Windows Workstation, vManage details must be set via environment variables using below commands")
-            print("set vmanage_host=198.18.1.10")
-            print("set vmanage_port=443")
-            print("set username=admin")
-            print("set password=admin")
-            print("set app_route_policy_name=<app_route_policy_name>")
-            print("For MAC OSX Workstation, vManage details must be set via environment variables using below commands")
-            print("export vmanage_host=198.18.1.10")
-            print("export vmanage_port=443")
-            print("export username=admin")
-            print("export password=admin")
-            print("export app_route_policy_name=<app_route_policy_name>")
-            exit()
+        vmanage_host = config["vmanage_host"]
+        vmanage_port = config["vmanage_port"]
+        username = config["vmanage_username"]
+        password = config["vmanage_password"]
 
+        app_route_policy_name = input("Please enter App aware route policy which needs to be replaced : ")
+        latency = input("Latency for new App aware route policy (ms) (1-1000) : ")
+        loss = input("Loss percentage for new App aware route policy (%) (1-100) : ")
+        jitter = input("Jitter for new App aware route policy (ms) (1-1000) : ")
 
         Auth = Authentication()
         jsessionid = Auth.get_jsessionid(vmanage_host,vmanage_port,username,password)
@@ -110,19 +105,17 @@ if __name__ == '__main__':
 
         base_url = "https://%s:%s/dataservice"%(vmanage_host,vmanage_port)
 
-        # Get app route statistics
-
         # Create new SLA class 
 
         payload = {
                     "name": "msuchand_sla_class",
-                    "description": "Desc Not Required",
+                    "description": "msuchand_sla_class",
                     "type": "sla",
                     "entries": [
                         {
-                        "latency": "100",
-                        "loss": "10",
-                        "jitter": "10"
+                        "latency": latency,
+                        "loss": loss,
+                        "jitter": jitter
                         }
                     ]
                   }
@@ -136,6 +129,7 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
             sla_class_id = response.json()["listId"]
+            print("\nCreated new SLA Class msuchand_sla_class")
         else:
             if logger is not None:
                 logger.error("Failed to create new SLA class\n")
@@ -155,6 +149,7 @@ if __name__ == '__main__':
                 if item["name"] == app_route_policy_name:
                     app_aware_policy_id = item["definitionId"]
                     break
+            print("\nRetrieved app aware routing policies list")
         else:
             if logger is not None:
                 logger.error("Failed to get app route policies list\n")
@@ -178,7 +173,7 @@ if __name__ == '__main__':
                                 item3["ref"] = sla_class_id
 
             app_policy_def = temp
-
+            print("\nRetrieved app aware route policy definition %s"%app_route_policy_name)
         else:
             if logger is not None:
                 logger.error("Failed to get app route policy sequences\n")
@@ -205,6 +200,7 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
             app_aware_route_id = response.json()["definitionId"]
+            print("\nCreated app aware route policy msuchand_%s"%app_route_policy_name)
         else:
             if logger is not None:
                 logger.error("Failed to create new App aware route policy\n" + str(response.text))
@@ -232,7 +228,7 @@ if __name__ == '__main__':
             for item in active_vsmart_policy_def["assembly"]:
                 if item["type"] == "appRoute":
                     item["definitionId"] = app_aware_route_id
-
+            print("\nRetrieved activated vsmart policy")
         else:
             if logger is not None:
                 logger.error("Failed to get active vsmart policy, please check vsmart policy is defined\n")
@@ -259,6 +255,7 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
            vsmarts_device_id = response.json()
+           print("\nUpdating vsmart policy with new app aware route policy")
         else:
             if logger is not None:
                 logger.error("\nFailed to edit vsmart policy " + str(response.text))
@@ -295,7 +292,7 @@ if __name__ == '__main__':
             if response.status_code == 200:
                 if response.json()['summary']['status'] == "done":
                     logger.info("\nvsmart policy push status is done")
-                    print("Updated vsmart policy with new app aware route policy")
+                    print("\nUpdated vsmart policy with new app aware route policy")
                     break
                 else:
                     continue
@@ -314,7 +311,7 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
            policy_preview = response.json()["preview"]
-           print("\nUpdated vSmart Policy\n",policy_preview)
+           print("\n",policy_preview)
         else:
             if logger is not None:
                 logger.error("\nFailed to get vsmart policy preview " + str(response.text))

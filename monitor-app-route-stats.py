@@ -112,51 +112,58 @@ if __name__ == '__main__':
                     "query": {
                         "condition": "AND",
                         "rules": [
-                        {
-                            "value": [
-                            rtr1_systemip
-                            ],
-                            "field": "local_system_ip",
-                            "type": "string",
-                            "operator": "in"
-                        },
-                        {
-                            "value": [
-                            rtr2_systemip
-                            ],
-                            "field": "remote_system_ip",
-                            "type": "string",
-                            "operator": "in"
-                        }
-                        ]
+                                    {
+                                        "value": [
+                                        "1"
+                                        ],
+                                        "field": "entry_time",
+                                        "type": "date",
+                                        "operator": "last_n_hours"
+                                    },
+                                    {
+                                        "value": [
+                                        rtr1_systemip
+                                        ],
+                                        "field": "local_system_ip",
+                                        "type": "string",
+                                        "operator": "in"
+                                    },
+                                    {
+                                        "value": [
+                                        rtr2_systemip
+                                        ],
+                                        "field": "remote_system_ip",
+                                        "type": "string",
+                                        "operator": "in"
+                                    }
+                                ]
                     },
                     "aggregation": {
                         "field": [
-                        {
-                            "property": "name",
-                            "sequence": 1
-                        }
-                        ],
+                                    {
+                                        "property": "name",
+                                        "sequence": 1
+                                    }
+                                ],
                         "metrics": [
-                        {
-                            "property": "loss_percentage",
-                            "type": "avg",
-                            "order": "desc"
-                        },
-                        {
-                            "property": "vqoe_score",
-                            "type": "avg"
-                        },
-                        {
-                            "property": "latency",
-                            "type": "avg"
-                        },
-                        {
-                            "property": "jitter",
-                            "type": "avg"
-                        }
-                        ]
-                    }
+                                    {
+                                        "property": "loss_percentage",
+                                        "type": "avg",
+                                    },
+                                    {
+                                        "property": "vqoe_score",
+                                        "type": "avg"
+                                    },
+                                    {
+                                        "property": "latency",
+                                        "type": "avg"
+                                    },
+                                    {
+                                        "property": "jitter",
+                                        "type": "avg"
+                                    }
+                                ]
+                                    }
                     }
 
         url = base_url + api_url
@@ -168,7 +175,7 @@ if __name__ == '__main__':
             app_route_stats_headers = ["Tunnel name", "vQoE score", "Latency", "Loss percentage", "Jitter"]
             table = list()
 
-            print("\nApp route statistics between %s and %s\n"%(rtr1_systemip,rtr2_systemip))
+            print("\nAverage App route statistics between %s and %s for last 1 hour\n"%(rtr1_systemip,rtr2_systemip))
             for item in app_route_stats:
                 tr = [item['name'], item['vqoe_score'], item['latency'], item['loss_percentage'], item['jitter']]
                 table.append(tr)
@@ -190,6 +197,14 @@ if __name__ == '__main__':
                         "rules": [
                         {
                             "value": [
+                            "1"
+                            ],
+                            "field": "entry_time",
+                            "type": "date",
+                            "operator": "last_n_hours"
+                        },
+                        {
+                            "value": [
                             rtr2_systemip
                             ],
                             "field": "local_system_ip",
@@ -217,7 +232,6 @@ if __name__ == '__main__':
                         {
                             "property": "loss_percentage",
                             "type": "avg",
-                            "order": "desc"
                         },
                         {
                             "property": "vqoe_score",
@@ -244,7 +258,7 @@ if __name__ == '__main__':
             app_route_stats_headers = ["Tunnel name", "vQoE score", "Latency", "Loss percentage", "Jitter"]
             table = list()
 
-            print("\nApp route statistics between %s and %s\n"%(rtr2_systemip,rtr1_systemip))
+            print("\nAverage App route statistics between %s and %s for last 1 hour\n"%(rtr2_systemip,rtr1_systemip))
             for item in app_route_stats:
                 tr = [item['name'], item['vqoe_score'], item['latency'], item['loss_percentage'], item['jitter']]
                 table.append(tr)

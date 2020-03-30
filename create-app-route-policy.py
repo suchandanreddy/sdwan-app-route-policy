@@ -155,7 +155,7 @@ if __name__ == '__main__':
                 logger.error("Failed to get app route policies list\n")
             exit()  
 
-        # Get app aware route policy sequences defination 
+        # Get app aware route policy sequences definition 
 
         api_url = "/template/policy/definition/approute/%s"%app_aware_policy_id
 

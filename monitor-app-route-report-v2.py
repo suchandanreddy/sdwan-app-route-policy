@@ -6,6 +6,8 @@ import time
 import logging
 import tabulate
 import yaml
+import pandas as pd
+from pandas import ExcelWriter
 from logging.handlers import TimedRotatingFileHandler
 
 requests.packages.urllib3.disable_warnings()
@@ -89,9 +91,7 @@ if __name__ == '__main__':
         vmanage_port = config["vmanage_port"]
         username = config["vmanage_username"]
         password = config["vmanage_password"]
-
-        rtr1_systemip = input("Enter Router-1 System IP address : ")
-        rtr2_systemip = input("Enter Router-2 System IP address : ")
+        hub_system_ip = config["hub_system_ip"]
 
         Auth = Authentication()
         jsessionid = Auth.get_jsessionid(vmanage_host,vmanage_port,username,password)
@@ -104,6 +104,27 @@ if __name__ == '__main__':
 
         base_url = "https://%s:%s/dataservice"%(vmanage_host,vmanage_port)
 
+        # Get Device Inventory details 
+
+        api_url = "/device"
+
+        url = base_url + api_url
+
+        response = requests.get(url=url, headers=headers, verify=False)
+
+        device_inv = dict()
+
+        if response.status_code == 200:
+            temp = response.json()["data"]
+            for item in temp:
+                if item["personality"] == "vedge":
+                    device_inv[item["system-ip"]] = [{'hostname' : item["host-name"]} , {'siteid' : item["site-id"]}]
+        else:
+            if logger is not None:
+                logger.error("Failed to retrieve device inventory\n")
+
+        print(device_inv)
+
         # Get app route statistics for tunnels between router-1 and router-2
 
         api_url = "/statistics/approute/fec/aggregation"
@@ -113,27 +134,16 @@ if __name__ == '__main__':
                             "condition": "AND",
                             "rules": [
                             {
-                                "value": [
-                                "2020-02-29T08:00:00 UTC",
-                                "2020-03-31T07:00:00 UTC"
-                                ],
+                                "value": ["30"],
                                 "field": "entry_time",
                                 "type": "date",
-                                "operator": "between"
+                                "operator": "last_n_days"
                             },
                             {
                                 "value": [
-                                          rtr1_systemip
+                                          hub_system_ip
                                          ],
                                 "field": "local_system_ip",
-                                "type": "string",
-                                "operator": "in"
-                            },
-                            {
-                                "value": [
-                                         rtr2_systemip
-                                        ],
-                                "field": "remote_system_ip",
                                 "type": "string",
                                 "operator": "in"
                             }
@@ -148,6 +158,14 @@ if __name__ == '__main__':
                             {
                                 "property": "proto",
                                 "sequence": 2
+                            },
+                            {
+                                "property": "local_system_ip",
+                                "sequence": 3
+                            },
+                            {
+                                "property": "remote_system_ip",
+                                "sequence": 4
                             }
                             ],
                             "histogram": {
@@ -183,19 +201,58 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
             app_route_stats = response.json()["data"]
-            app_route_stats_headers = ["Date", "Tunnel name", "vQoE score", "Latency", "Loss percentage", "Jitter"]
+            app_route_stats_headers = ["Date", "Hub", "Hub Siteid", "Spoke", "Spoke Siteid", "Tunnel name", "vQoE score", "Latency", "Loss percentage", "Jitter"]
             table = list()
 
-            print("\nAverage App route statistics between %s and %s for last 30 days\n"%(rtr1_systemip,rtr2_systemip))
+            date_list = list()
+            hub_list = list()
+            hub_siteid_list = list()
+            spoke_list = list()
+            spoke_siteid_list = list()
+            tunnel_name_list = list()
+            vqoe_list = list()
+            latency_list = list()
+            loss_list = list()
+            jitter_list = list()
+
+            print("\nAverage App route statistics between %s and spokes for last 30 days\n"%(hub_system_ip))
             for item in app_route_stats:
-                tr = [time.strftime('%m/%d/%Y',  time.gmtime(item['entry_time']/1000.)), item['name'], item['vqoe_score'], item['latency'], item['loss_percentage'], item['jitter']]
+                tr = [time.strftime('%m/%d/%Y',  time.gmtime(item['entry_time']/1000.)), device_inv[item['local_system_ip']][0]['hostname'], device_inv[item['local_system_ip']][1]['siteid'], device_inv[item['remote_system_ip']][0]['hostname'], device_inv[item['remote_system_ip']][1]['siteid'], item['name'], item['vqoe_score'], item['latency'], item['loss_percentage'], item['jitter']]
                 table.append(tr)
+
+                date_list.append(time.strftime('%m/%d/%Y',  time.gmtime(item['entry_time']/1000.)))
+                hub_list.append(device_inv[item['local_system_ip']][0]['hostname'])
+                hub_siteid_list.append(device_inv[item['local_system_ip']][1]['siteid'])
+                spoke_list.append(device_inv[item['remote_system_ip']][0]['hostname'])
+                spoke_siteid_list.append(device_inv[item['remote_system_ip']][1]['siteid'])
+                tunnel_name_list.append(item['name'])
+                vqoe_list.append(item['vqoe_score'])
+                latency_list.append(item['latency'])
+                loss_list.append(item['loss_percentage'])
+                jitter_list.append(item['jitter'])
+
             try:
                 print(tabulate.tabulate(table, app_route_stats_headers, tablefmt="fancy_grid"))
-                csv_content = tabulate.tabulate(table, app_route_stats_headers, tablefmt="csv")
-                file_name   = open("Tunnel Statistics %s.csv"%time.strftime("%Y-%m-%d"),"w")
-                file_name.write(csv_content)
-                file_name.close()
+                excel_content = dict()
+                excel_content["Date"] = date_list
+                excel_content["Hub"] = hub_list
+                excel_content["Hub Siteid"] = hub_siteid_list
+                excel_content["Spoke"] = spoke_list
+                excel_content["Spoke Siteid"] = spoke_siteid_list
+                excel_content["Tunnel name"] = tunnel_name_list
+                excel_content["vQoE score"] = vqoe_list
+                excel_content["Latency"] = latency_list
+                excel_content["Loss percentage"] = loss_list
+                excel_content["Jitter"] = jitter_list
+
+                df = pd.DataFrame(excel_content)
+                writer = ExcelWriter('Tunnel Statistics %s.xlsx'%time.strftime("%Y-%m-%d"))
+                df.to_excel(writer,'30 Days',index=False)
+                writer.save()
+                #csv_content = tabulate.tabulate(table, app_route_stats_headers, tablefmt="csv")
+                #file_name   = open("Tunnel Statistics %s.csv"%time.strftime("%Y-%m-%d"),"w")
+                #file_name.write(csv_content)
+                #file_name.close()
             except UnicodeEncodeError:
                 print(tabulate.tabulate(table, app_route_stats_headers, tablefmt="grid"))
             

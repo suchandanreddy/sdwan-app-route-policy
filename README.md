@@ -37,10 +37,14 @@ pip3 install -r requirements.txt
 
 ```
 # vManage Connectivity Info
-vmanage_host: 
-vmanage_port: 
-vmanage_username: 
-vmanage_password: 
+vmanage_host:
+vmanage_port:
+vmanage_username:
+vmanage_password:
+
+hub_routers: 
+  - system_ip:
+  - system_ip:
 ```
 
 ## Sample Outputs

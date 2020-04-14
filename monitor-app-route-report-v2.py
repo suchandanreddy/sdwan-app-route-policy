@@ -231,7 +231,7 @@ if __name__ == '__main__':
                 loss_list = list()
                 jitter_list = list()
 
-                print("\nAverage App route statistics between %s and spokes for last 30 days\n"%(device_inv[hub["system_ip"]][0]['hostname']))
+                print("\nAverage App route statistics between %s and spokes for %s and %s\n"%(device_inv[hub["system_ip"]][0]['hostname'],start_date,end_date))
 
                 for item in app_route_stats:
                     tr = [time.strftime('%m/%d/%Y',  time.gmtime(item['entry_time']/1000.)), device_inv[item['local_system_ip']][0]['hostname'], device_inv[item['local_system_ip']][1]['siteid'], device_inv[item['remote_system_ip']][0]['hostname'], device_inv[item['remote_system_ip']][1]['siteid'], item['name'], item['vqoe_score'], item['latency'], item['loss_percentage'], item['jitter']]

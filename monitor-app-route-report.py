@@ -265,10 +265,6 @@ if __name__ == '__main__':
                     df = pd.DataFrame(excel_content)
                     df.to_excel(writer, device_inv[hub["system_ip"]][0]['hostname'] ,index=False)
                     
-                    #csv_content = tabulate.tabulate(table, app_route_stats_headers, tablefmt="csv")
-                    #file_name   = open("Tunnel Statistics %s.csv"%time.strftime("%Y-%m-%d"),"w")
-                    #file_name.write(csv_content)
-                    #file_name.close()
                 except UnicodeEncodeError:
                     print(tabulate.tabulate(table, app_route_stats_headers, tablefmt="grid"))
                 

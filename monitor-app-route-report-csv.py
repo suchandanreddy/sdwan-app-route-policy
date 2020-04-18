@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
         base_url = "https://%s:%s/dataservice"%(vmanage_host,vmanage_port)
 
-        # Get app route statistics for tunnels between router-1 and router-2
+        # Get app route statistics for tunnels between router-1(rtr1_systemip) and router-2(rtr2_systemip)
 
         api_url = "/statistics/approute/fec/aggregation"
 

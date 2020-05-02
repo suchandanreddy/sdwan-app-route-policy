@@ -146,7 +146,7 @@ if __name__ == '__main__':
             # update app aware route policy id
 
             for item in active_vsmart_policy_def["assembly"]:
-                if item["type"] == "appRoute":
+                if item["type"] == "appRoute" and item["definitionId"] == new_app_aware_policy_id:
                     item["definitionId"] = app_aware_policy_id
 
             print("\nRetrieved activated vsmart policy")
@@ -248,8 +248,8 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
             if logger is not None:
-                logger.error("\nDeleted msuchand_ app route policy")
-            print("\nDeleted msuchand_ app route policy")
+                logger.error("\nDeleted msuchand_%s app route policy"%app_route_policy_name)
+            print("\nDeleted msuchand_%s app route policy"%app_route_policy_name)
         else:
             if logger is not None:
                 logger.error("\nFailed to delete msuchand_ app route policy " + str(response.text))
@@ -267,7 +267,7 @@ if __name__ == '__main__':
         if response.status_code == 200:
             temp = response.json()["data"]
             for item in temp:
-                if item['name'] == "msuchand_sla_class":
+                if item['name'] == app_route_policy_name+"_sla_class":
                     sla_class_id = item["listId"]
         else:
             if logger is not None:
@@ -282,11 +282,11 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
             if logger is not None:
-                logger.error("\nDeleted msuchand_sla_class")
-            print("\nDeleted msuchand_sla_class")
+                logger.error("\nDeleted %s_sla_class"%app_route_policy_name)
+            print("\nDeleted %s_sla_class"%app_route_policy_name)
         else:
             if logger is not None:
-                logger.error("\nFailed to delete msuchand_sla_class" + str(response.text))
+                logger.error("\nFailed to delete %s_sla_class"%app_route_policy_name + str(response.text))
             exit()
 
 

@@ -108,8 +108,8 @@ if __name__ == '__main__':
         # Create new SLA class 
 
         payload = {
-                    "name": "msuchand_sla_class",
-                    "description": "msuchand_sla_class",
+                    "name": app_route_policy_name+"_sla_class",
+                    "description": app_route_policy_name+"_sla_class",
                     "type": "sla",
                     "entries": [
                         {
@@ -129,10 +129,12 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
             sla_class_id = response.json()["listId"]
-            print("\nCreated new SLA Class msuchand_sla_class")
+            print("\nCreated new SLA Class %s_sla_class"%app_route_policy_name)
         else:
+            print("\nFailed to create new SLA class")
             if logger is not None:
-                logger.error("Failed to create new SLA class\n")
+                logger.error("Failed to create new SLA class " + str(response.text))
+            exit()
 
 
         # Get app aware route policies 
@@ -147,7 +149,7 @@ if __name__ == '__main__':
             app_aware_policy = response.json()["data"]
             for item in app_aware_policy:
                 if item["name"] == app_route_policy_name:
-                    app_aware_policy_id = item["definitionId"]
+                    old_app_aware_id = item["definitionId"]
                     break
             print("\nRetrieved app aware routing policies list")
         else:
@@ -157,7 +159,7 @@ if __name__ == '__main__':
 
         # Get app aware route policy sequences definition 
 
-        api_url = "/template/policy/definition/approute/%s"%app_aware_policy_id
+        api_url = "/template/policy/definition/approute/%s"%old_app_aware_id
 
         url = base_url + api_url
         
@@ -199,11 +201,12 @@ if __name__ == '__main__':
         response = requests.post(url=url, headers=headers, data=json.dumps(payload), verify=False)
 
         if response.status_code == 200:
-            app_aware_route_id = response.json()["definitionId"]
+            new_app_aware_id = response.json()["definitionId"]
             print("\nCreated app aware route policy msuchand_%s"%app_route_policy_name)
         else:
             if logger is not None:
                 logger.error("Failed to create new App aware route policy\n" + str(response.text))
+            exit()
 
         # Get current vSmart policies 
 
@@ -226,12 +229,12 @@ if __name__ == '__main__':
             # update app aware route policy id
 
             for item in active_vsmart_policy_def["assembly"]:
-                if item["type"] == "appRoute":
-                    item["definitionId"] = app_aware_route_id
-            print("\nRetrieved activated vsmart policy")
+                if item["type"] == "appRoute" and item["definitionId"] == old_app_aware_id :
+                    item["definitionId"] = new_app_aware_id
         else:
             if logger is not None:
                 logger.error("Failed to get active vsmart policy, please check vsmart policy is defined\n")
+            exit()
 
         # Put request to edit centralised policy
 
@@ -297,7 +300,8 @@ if __name__ == '__main__':
                 else:
                     continue
             else:
-                logger.error("\nFetching policy push status failed " + str(response.text))
+                if logger is not None:
+                    logger.error("\nFetching policy push status failed " + str(response.text))
                 exit()
             
         

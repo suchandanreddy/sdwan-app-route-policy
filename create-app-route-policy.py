@@ -185,9 +185,9 @@ if __name__ == '__main__':
         # Create new App aware route policy
 
         payload = {
-                    "name": "msuchand_" + app_policy_def["name"] ,
+                    "name": "SCRIPT_" + app_policy_def["name"] ,
                     "type": app_policy_def["type"],
-                    "description": "msuchand_" + app_policy_def["description"] ,
+                    "description": "SCRIPT_" + app_policy_def["description"] ,
                     "sequences": app_policy_def["sequences"]
                     }
 
@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
             new_app_aware_id = response.json()["definitionId"]
-            print("\nCreated app aware route policy msuchand_%s"%app_route_policy_name)
+            print("\nCreated app aware route policy SCRIPT_%s"%app_route_policy_name)
         else:
             if logger is not None:
                 logger.error("Failed to create new App aware route policy\n" + str(response.text))

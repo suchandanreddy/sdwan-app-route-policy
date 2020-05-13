@@ -116,7 +116,7 @@ if __name__ == '__main__':
             for item in app_aware_policy:
                 if item["name"] == app_route_policy_name:
                     app_aware_policy_id = item["definitionId"]
-                elif item["name"] == "msuchand_" + app_route_policy_name:
+                elif item["name"] == "SCRIPT_" + app_route_policy_name:
                     new_app_aware_policy_id = item["definitionId"]
 
             print("\nRetrieved app aware route policy definition %s"%app_route_policy_name)            
@@ -248,11 +248,11 @@ if __name__ == '__main__':
 
         if response.status_code == 200:
             if logger is not None:
-                logger.error("\nDeleted msuchand_%s app route policy"%app_route_policy_name)
-            print("\nDeleted msuchand_%s app route policy"%app_route_policy_name)
+                logger.error("\nDeleted SCRIPT_%s app route policy"%app_route_policy_name)
+            print("\nDeleted SCRIPT_%s app route policy"%app_route_policy_name)
         else:
             if logger is not None:
-                logger.error("\nFailed to delete msuchand_ app route policy " + str(response.text))
+                logger.error("\nFailed to delete SCRIPT_ app route policy " + str(response.text))
             exit()
 
 

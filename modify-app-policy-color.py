@@ -145,8 +145,8 @@ if __name__ == '__main__':
         log_level = logging.DEBUG
         logger = get_logger("log/app_route_change_logs.txt", log_level)
         
-        new_path = input("Please enter new transport color ")
-        app_route_policy_name = input("Please enter app route policy name(in which transport color has to be modified) ")     
+        new_path = input("\nPlease enter new transport color ")
+        app_route_policy_name = input("\nPlease enter app route policy name(in which transport color has to be modified) ")     
 
         if logger is not None:
             logger.info("Loading vManage login details from YAML\n")
@@ -280,7 +280,7 @@ if __name__ == '__main__':
             if response.status_code == 200:
                 if response.json()['summary']['status'] == "done":
                     logger.info("\nTemplate push status is done")
-                    print("Updated App route policy successfully")
+                    print("\nUpdated App route policy successfully")
                     break
                 else:
                     continue
